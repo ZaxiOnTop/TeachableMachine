@@ -148,13 +148,20 @@
                 const predictions = await model.predict(videoElement);
 
                 // Update label container
-                predictions.forEach((prediction, index) => {
-                    const label = `${prediction.className}: ${(
-                        prediction.probability * 100
-                    ).toFixed(2)}%`;
-                    labelContainer.childNodes[index].innerHTML = label;
-                });
-            }
+                predictionInterval = setInterval(async () => {
+                if (model && videoElement) {
+                    const predictions = await model.predict(videoElement);
+
+                    // Update label container
+                    predictions.forEach((prediction, index) => {
+                        const label = `${prediction.className}: ${(
+                            prediction.probability * 100
+                        ).toFixed(2)}%`;
+                        labelContainer.childNodes[index].innerHTML = label;
+                    });
+                }
+            }, 1000); // 1-second interval
+        }
 
             async function loop() {
                 if (stream) {
