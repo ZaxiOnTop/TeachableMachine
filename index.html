@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Webcam Switch</title>
 </head>
 <body>
     <style>
@@ -39,8 +39,7 @@
         }
     </style>
 
-    <div class="siteTitle">UE license plates or not?</div>
-
+    <div class="siteTitle">Use Front or Back Camera</div>
     <div id="webcam-container"></div>
     <div id="label-container"></div>
     <button type="button" onclick="init()">Start</button>
@@ -80,13 +79,14 @@
                 webcam.stop(); // Stop the previous webcam instance if it exists
             }
 
-            const flip = useFrontCamera; // Flip the webcam if using the front camera
             const constraints = {
-                video: { facingMode: useFrontCamera ? "user" : "environment" }
+                video: {
+                    facingMode: useFrontCamera ? "user" : "environment" // Select front or back camera
+                }
             };
 
-            webcam = new tmImage.Webcam(200, 200, flip);
-            await webcam.setup(constraints);
+            webcam = new tmImage.Webcam(200, 200, false); // width, height, no flip
+            await webcam.setup(constraints); // Pass constraints to setup
             await webcam.play();
         }
 
@@ -112,4 +112,3 @@
     </script>
 </body>
 </html>
- 
