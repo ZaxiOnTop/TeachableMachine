@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Switch Camera Example</title>
+    <title>Switch Camera with Labels</title>
 </head>
 <body>
     <style>
@@ -38,44 +38,61 @@
             border-radius: 8px;
         }
 
-        @media only screen and (max-width: 768px) {
-            
-        button {
-        width: 40vw;
-        height: 6vh;
-        font-size: 4.4vw;
+        #label-container {
+            margin-top: 1rem;
+            font-size: 1.2rem;
+            text-align: center;
         }
-
-        .siteTitle {
-            font-size: 6vw;
-            margin-bottom: 3vw;
-        }
-}
-
     </style>
 
-    <div class="siteTitle">Switch Camera Example</div>
+    <div class="siteTitle">Switch Camera with Labels</div>
     <div id="webcam-container"></div>
+    <div id="label-container">Loading model...</div>
     <button onclick="startWebcam()">Start</button>
     <button onclick="toggleCamera()">Switch Camera</button>
 
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script>
+        const URL = "https://teachablemachine.withgoogle.com/models/GA3Bix8Fm/";
+        let model, webcam, labelContainer, maxPredictions;
         let videoElement = null;
         let stream = null;
         let useFrontCamera = true; // Default to front camera
 
+        // Initialize the Teachable Machine model
+        async function initModel() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            // Clear the label container
+            labelContainer = document.getElementById("label-container");
+            labelContainer.innerHTML = "";
+
+            // Create elements for each class
+            for (let i = 0; i < maxPredictions; i++) {
+                const label = document.createElement("div");
+                label.innerHTML = "Loading...";
+                labelContainer.appendChild(label);
+            }
+        }
+
+        // Start the webcam
         async function startWebcam() {
             // Stop any existing stream
             if (stream) {
                 stopStream();
             }
 
-            // Set camera constraints based on user selection
+            // Set camera constraints
             const constraints = {
                 video: {
                     facingMode: useFrontCamera ? "user" : "environment",
-                    width: { ideal: 480 },
-                    height: { ideal: 270 }
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
                 },
                 audio: false
             };
@@ -92,6 +109,9 @@
                     document.getElementById("webcam-container").appendChild(videoElement);
                 }
                 videoElement.srcObject = stream;
+
+                // Run predictions in a loop
+                runPredictionLoop();
             } catch (error) {
                 console.error("Error accessing camera: ", error);
                 alert("Unable to access camera. Make sure permissions are granted.");
@@ -99,17 +119,48 @@
         }
 
         function toggleCamera() {
-            useFrontCamera = !useFrontCamera; // Toggle between front and back camera
-            startWebcam(); // Restart the webcam with new constraints
+            useFrontCamera = !useFrontCamera; // Toggle camera
+            startWebcam(); // Restart webcam with the new setting
         }
 
         function stopStream() {
-            // Stop all tracks of the current stream
             stream.getTracks().forEach(track => track.stop());
             stream = null;
         }
 
-        // Clean up when the page is unloaded
+        // Prediction loop
+        async function runPredictionLoop() {
+            if (!model) {
+                console.error("Model not initialized");
+                return;
+            }
+
+            async function predict() {
+                const predictions = await model.predict(videoElement);
+
+                // Update label container
+                predictions.forEach((prediction, index) => {
+                    const label = `${prediction.className}: ${(
+                        prediction.probability * 100
+                    ).toFixed(2)}%`;
+                    labelContainer.childNodes[index].innerHTML = label;
+                });
+            }
+
+            async function loop() {
+                if (stream) {
+                    await predict();
+                    requestAnimationFrame(loop);
+                }
+            }
+
+            loop();
+        }
+
+        // Initialize the model on page load
+        initModel();
+
+        // Clean up when the page is closed
         window.addEventListener("beforeunload", stopStream);
     </script>
 </body>
